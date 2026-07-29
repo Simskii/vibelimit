@@ -9,6 +9,8 @@ private final class VibelimitPanel: NSPanel {
 
 @MainActor
 final class PanelController {
+    private static let panelWidth: CGFloat = 344
+
     private let panel: VibelimitPanel
     private let hostingView: NSHostingView<PanelContentView>
     private weak var statusButton: NSStatusBarButton?
@@ -33,7 +35,7 @@ final class PanelController {
         )
 
         panel = VibelimitPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 190),
+            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: 190),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -73,7 +75,6 @@ final class PanelController {
         guard let button = statusButton,
               let buttonWindow = button.window else { return }
 
-        hostingView.layoutSubtreeIfNeeded()
         let measuredHeight = hostingView.fittingSize.height
         let height = min(420, max(148, measuredHeight))
         let buttonRectInWindow = button.convert(button.bounds, to: nil)
@@ -81,12 +82,15 @@ final class PanelController {
         let screen = buttonWindow.screen ?? NSScreen.main
         let visibleFrame = screen?.visibleFrame ?? .zero
 
-        var originX = buttonRectOnScreen.midX - 190
-        originX = min(max(originX, visibleFrame.minX + 8), visibleFrame.maxX - 388)
+        var originX = buttonRectOnScreen.midX - (Self.panelWidth / 2)
+        originX = min(
+            max(originX, visibleFrame.minX + 8),
+            visibleFrame.maxX - Self.panelWidth - 8
+        )
         let originY = buttonRectOnScreen.minY - height - 7
 
         panel.setFrame(
-            NSRect(x: originX, y: originY, width: 380, height: height),
+            NSRect(x: originX, y: originY, width: Self.panelWidth, height: height),
             display: true,
             animate: false
         )

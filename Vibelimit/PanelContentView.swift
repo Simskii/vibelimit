@@ -11,18 +11,15 @@ struct PanelContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
-                .overlay(Color.white.opacity(0.07))
-                .padding(.horizontal, 16)
 
             content
 
             Divider()
                 .overlay(Color.white.opacity(0.06))
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 18)
             footer
         }
-        .frame(width: 380)
+        .frame(width: 344)
         .fixedSize(horizontal: false, vertical: true)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -38,49 +35,53 @@ struct PanelContentView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 14) {
-            if let snapshot = usageStore.snapshot {
-                ForEach(Array(snapshot.displayBuckets.prefix(2))) { bucket in
-                    SummaryMetric(bucket: bucket)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(usageStore.snapshot?.displayBuckets.first?.displayName ?? "Codex")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.92))
+
+                if let lastUpdated = usageStore.lastUpdated {
+                    Text("Updated \(lastUpdated, style: .relative)")
+                } else if usageStore.state == .loading {
+                    Text("Updating…")
+                } else {
+                    Text("Limits unavailable")
                 }
-                if snapshot.displayBuckets.count > 2 {
-                    Text("+\(snapshot.displayBuckets.count - 2)")
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundStyle(secondaryText)
-                }
-            } else {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(secondaryText)
-                Text("reading codex limits")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(secondaryText)
             }
 
-            Spacer(minLength: 4)
+            Spacer()
+
+            if let snapshot = usageStore.snapshot {
+                if let remaining = snapshot.displayBuckets.first?.primaryRemainingPercent {
+                    Text("\(Int(remaining.rounded()))%")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(
+                            CapacityLevel(remainingPercent: remaining).color
+                        )
+                }
+            }
 
             if usageStore.state == .loading {
                 ProgressView()
                     .controlSize(.small)
-                    .scaleEffect(0.7)
+                    .scaleEffect(0.72)
             }
-
-            actionsMenu
         }
-        .padding(.horizontal, 16)
-        .frame(height: 42)
+        .font(.system(size: 10, weight: .regular))
+        .foregroundStyle(secondaryText)
+        .padding(.horizontal, 18)
+        .padding(.top, 15)
+        .padding(.bottom, 12)
     }
 
     @ViewBuilder
     private var content: some View {
         if let snapshot = usageStore.snapshot {
-            VStack(spacing: 0) {
-                ForEach(snapshot.displayBuckets) { bucket in
-                    LimitRow(bucket: bucket)
-                    if bucket.id != snapshot.displayBuckets.last?.id {
-                        Divider()
-                            .overlay(Color.white.opacity(0.045))
-                            .padding(.leading, 34)
+            VStack(spacing: 13) {
+                if let bucket = snapshot.displayBuckets.first {
+                    ForEach(bucket.windows) { namedWindow in
+                        LimitWindowSection(namedWindow: namedWindow)
                     }
                 }
 
@@ -88,7 +89,8 @@ struct PanelContentView: View {
                     staleNotice(message)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.horizontal, 18)
+            .padding(.bottom, 14)
         } else {
             emptyState
         }
@@ -134,29 +136,29 @@ struct PanelContentView: View {
         }
         .font(.system(size: 9, weight: .medium))
         .foregroundStyle(Color(red: 1.00, green: 0.72, blue: 0.22).opacity(0.84))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color.white.opacity(0.025))
+        .padding(.top, 2)
     }
 
     private var footer: some View {
         HStack(spacing: 8) {
             if let count = usageStore.snapshot?.resetCredits?.availableCount {
-                Label("\(count) reset\(count == 1 ? "" : "s")", systemImage: "arrow.counterclockwise.circle")
+                Label(
+                    "\(count) reset credit\(count == 1 ? "" : "s")",
+                    systemImage: "arrow.counterclockwise.circle"
+                )
             } else {
                 Label("read only", systemImage: "lock.fill")
             }
 
             Spacer()
 
-            if let lastUpdated = usageStore.lastUpdated {
-                Text("updated \(lastUpdated, style: .relative)")
-            }
+            actionsMenu
         }
-        .font(.system(size: 9, weight: .medium, design: .monospaced))
+        .font(.system(size: 10, weight: .medium))
         .foregroundStyle(secondaryText)
-        .padding(.horizontal, 16)
-        .frame(height: 34)
+        .padding(.leading, 18)
+        .padding(.trailing, 12)
+        .frame(height: 38)
     }
 
     private var actionsMenu: some View {
@@ -193,8 +195,8 @@ struct PanelContentView: View {
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.white.opacity(0.38))
-                .frame(width: 22, height: 22)
+                .foregroundStyle(Color.white.opacity(0.48))
+                .frame(width: 26, height: 26)
                 .contentShape(Rectangle())
         }
         .menuStyle(.borderlessButton)
@@ -204,102 +206,56 @@ struct PanelContentView: View {
     }
 }
 
-private struct SummaryMetric: View {
-    let bucket: RateLimitBucket
+private struct LimitWindowSection: View {
+    let namedWindow: NamedRateLimitWindow
 
     var body: some View {
-        if let window = bucket.primary ?? bucket.secondary {
-            HStack(spacing: 5) {
-                Image(systemName: bucket.limitId == "codex" ? "sparkles" : "bolt.fill")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(level.color)
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.86))
 
-                Text(window.durationLabel)
-                    .foregroundStyle(Color.white.opacity(0.66))
-                Text("\(Int(window.remainingPercent.rounded()))%")
-                    .foregroundStyle(level.color)
-                Text("↗ \(window.resetLabel())")
-                    .foregroundStyle(Color.white.opacity(0.34))
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.08))
+                    Capsule()
+                        .fill(level.color.opacity(0.82))
+                        .frame(
+                            width: proxy.size.width
+                                * (namedWindow.window.remainingPercent / 100)
+                        )
+                }
             }
-            .font(.system(size: 9, weight: .semibold, design: .monospaced))
+            .frame(height: 5)
+
+            HStack {
+                Text("\(Int(namedWindow.window.remainingPercent.rounded()))% remaining")
+                    .foregroundStyle(Color.white.opacity(0.68))
+                Spacer()
+                Text("Resets in \(namedWindow.window.resetLabel())")
+                    .foregroundStyle(Color.white.opacity(0.42))
+            }
+            .font(.system(size: 10, weight: .medium))
             .lineLimit(1)
         }
     }
 
     private var level: CapacityLevel {
-        CapacityLevel(remainingPercent: bucket.primaryRemainingPercent ?? 0)
-    }
-}
-
-private struct LimitRow: View {
-    let bucket: RateLimitBucket
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(level.color)
-                .frame(width: 6, height: 6)
-                .shadow(color: level.color.opacity(0.4), radius: 4)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(bucket.displayName)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.88))
-                    .lineLimit(1)
-
-                if let window = bucket.primary ?? bucket.secondary {
-                    Text(resetDescription(for: window))
-                        .font(.system(size: 9, weight: .regular, design: .monospaced))
-                        .foregroundStyle(Color.white.opacity(0.34))
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            HStack(spacing: 12) {
-                ForEach(bucket.windows) { namedWindow in
-                    WindowMetric(namedWindow: namedWindow)
-                }
-            }
-        }
-        .padding(.horizontal, 16)
-        .frame(minHeight: 50)
-    }
-
-    private var level: CapacityLevel {
-        CapacityLevel(remainingPercent: bucket.primaryRemainingPercent ?? 0)
-    }
-
-    private func resetDescription(for window: RateLimitWindow) -> String {
-        let date = Date(timeIntervalSince1970: window.resetsAt)
-        let absolute = date.formatted(
-            Date.FormatStyle()
-                .weekday(.abbreviated)
-                .hour(.twoDigits(amPM: .omitted))
-                .minute(.twoDigits)
-        )
-        return "resets \(absolute) · in \(window.resetLabel())"
-    }
-}
-
-private struct WindowMetric: View {
-    let namedWindow: NamedRateLimitWindow
-
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            Text("\(Int(namedWindow.window.remainingPercent.rounded()))%")
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                .foregroundStyle(level.color)
-
-            Text(namedWindow.window.durationLabel)
-                .font(.system(size: 8, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color.white.opacity(0.34))
-        }
-        .frame(minWidth: 30, alignment: .trailing)
-    }
-
-    private var level: CapacityLevel {
         CapacityLevel(remainingPercent: namedWindow.window.remainingPercent)
+    }
+
+    private var title: String {
+        let minutes = namedWindow.window.windowDurationMins
+        if minutes == 10_080 {
+            return "Weekly"
+        }
+        if minutes >= 1_440, minutes.isMultiple(of: 1_440) {
+            return "\(minutes / 1_440) day"
+        }
+        if minutes >= 60, minutes.isMultiple(of: 60) {
+            return "\(minutes / 60) hour"
+        }
+        return "\(minutes) minute"
     }
 }

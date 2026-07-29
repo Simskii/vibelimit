@@ -1,0 +1,182 @@
+name: Release DMG
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version to package, without the v prefix
+        required: true
+        type: string
+      release-tag:
+        description: Existing GitHub release tag to upload assets to
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, without the v prefix
+        required: true
+        default: "1.0.0"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUESTED_TAG: ${{ inputs.release-tag }}
+        run: |
+          VERSION="${REQUESTED_VERSION}"
+          RELEASE_TAG="${REQUESTED_TAG:-v${VERSION}}"
+          echo "VERSION=${VERSION}" >> "${GITHUB_ENV}"
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> "${GITHUB_ENV}"
+
+      - name: Check release credentials
+        env:
+          CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          configured=0
+          [[ -n "${CERTIFICATE_P12}" ]] && configured=$((configured + 1))
+          [[ -n "${CERTIFICATE_PASSWORD}" ]] && configured=$((configured + 1))
+          [[ -n "${ASC_KEY_ID}" ]] && configured=$((configured + 1))
+          [[ -n "${ASC_ISSUER_ID}" ]] && configured=$((configured + 1))
+          [[ -n "${ASC_PRIVATE_KEY}" ]] && configured=$((configured + 1))
+
+          if [[ "${configured}" -ne 0 && "${configured}" -ne 5 ]]; then
+            echo "Signing is partially configured. Add all five release secrets or remove them all." >&2
+            exit 1
+          fi
+
+          if [[ "${configured}" -eq 5 ]]; then
+            echo "RELEASE_SIGNED=true" >> "${GITHUB_ENV}"
+          else
+            echo "RELEASE_SIGNED=false" >> "${GITHUB_ENV}"
+          fi
+
+      - name: Run tests
+        run: |
+          xcodebuild \
+            -project Vibelimit.xcodeproj \
+            -scheme Vibelimit \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            test
+
+      - name: Build release app
+        run: |
+          xcodebuild \
+            -project Vibelimit.xcodeproj \
+            -scheme Vibelimit \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="${VERSION}" \
+            CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
+            build
+
+      - name: Import Developer ID certificate
+        if: env.RELEASE_SIGNED == 'true'
+        env:
+          CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="${RUNNER_TEMP}/vibelimit-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          CERTIFICATE_PATH="${RUNNER_TEMP}/developer-id.p12"
+
+          printf "%s" "${CERTIFICATE_P12}" | base64 --decode > "${CERTIFICATE_PATH}"
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security import "${CERTIFICATE_PATH}" \
+            -P "${CERTIFICATE_PASSWORD}" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "${KEYCHAIN_PATH}"
+          security list-keychain -d user -s "${KEYCHAIN_PATH}"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "${KEYCHAIN_PASSWORD}" \
+            "${KEYCHAIN_PATH}"
+
+          SIGNING_IDENTITY="$(
+            security find-identity -v -p codesigning "${KEYCHAIN_PATH}" \
+              | awk '/Developer ID Application/{print $2; exit}'
+          )"
+          if [[ -z "${SIGNING_IDENTITY}" ]]; then
+            echo "The imported certificate is not a Developer ID Application identity." >&2
+            exit 1
+          fi
+          echo "SIGNING_IDENTITY=${SIGNING_IDENTITY}" >> "${GITHUB_ENV}"
+
+      - name: Package DMG
+        env:
+          APP_PATH: build/DerivedData/Build/Products/Release/Vibelimit.app
+          OUTPUT_DIR: build/release
+        run: Scripts/package_release.sh "${VERSION}"
+
+      - name: Notarize signed DMG
+        if: env.RELEASE_SIGNED == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          KEY_PATH="${RUNNER_TEMP}/AuthKey_${ASC_KEY_ID}.p8"
+          printf "%s" "${ASC_PRIVATE_KEY}" > "${KEY_PATH}"
+
+          xcrun notarytool submit "build/release/Vibelimit-${VERSION}.dmg" \
+            --key "${KEY_PATH}" \
+            --key-id "${ASC_KEY_ID}" \
+            --issuer "${ASC_ISSUER_ID}" \
+            --wait
+          xcrun stapler staple "build/release/Vibelimit-${VERSION}.dmg"
+          xcrun stapler validate "build/release/Vibelimit-${VERSION}.dmg"
+          shasum -a 256 "build/release/Vibelimit-${VERSION}.dmg" \
+            > "build/release/Vibelimit-${VERSION}.dmg.sha256"
+
+      - name: Verify DMG
+        run: |
+          hdiutil verify "build/release/Vibelimit-${VERSION}.dmg"
+          shasum -a 256 -c "build/release/Vibelimit-${VERSION}.dmg.sha256"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${RELEASE_SIGNED}" == "true" ]]; then
+            SECURITY_NOTE="Developer ID signed and notarized by Apple."
+          else
+            SECURITY_NOTE="Ad hoc signed preview. On first launch, right-click Vibelimit and choose Open."
+          fi
+
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" \
+              "build/release/Vibelimit-${VERSION}.dmg" \
+              "build/release/Vibelimit-${VERSION}.dmg.sha256" \
+              --clobber
+          else
+            gh release create "${RELEASE_TAG}" \
+              "build/release/Vibelimit-${VERSION}.dmg" \
+              "build/release/Vibelimit-${VERSION}.dmg.sha256" \
+              --target "${GITHUB_SHA}" \
+              --title "Vibelimit ${VERSION}" \
+              --generate-notes \
+              --notes "${SECURITY_NOTE}"
+          fi
