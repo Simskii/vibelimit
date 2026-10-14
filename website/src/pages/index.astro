@@ -1,0 +1,162 @@
+---
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/dm-sans/600.css";
+import "@fontsource/newsreader/400.css";
+import "@fontsource/newsreader/400-italic.css";
+import "@phosphor-icons/web/regular";
+import "../styles/global.css";
+
+const repoUrl = "https://github.com/Simskii/vibelimit";
+const releaseUrl = `${repoUrl}/releases/latest`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta
+      name="description"
+      content="Track Codex, Claude Code, Cursor, and GitHub Copilot subscription usage in one native macOS menu bar panel."
+    />
+    <meta name="theme-color" content="#080808" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta property="og:title" content="Vibelimit — Coding limits at a glance" />
+    <meta
+      property="og:description"
+      content="Your coding subscriptions together, with remaining usage and reset times."
+    />
+    <title>Vibelimit — Coding limits at a glance</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Vibelimit home">
+        <img src="/icons/favicon-32.png" width="24" height="24" alt="" aria-hidden="true" />
+        <span>Vibelimit</span>
+      </a>
+
+      <nav aria-label="Primary navigation">
+        <a href={repoUrl}>GitHub</a>
+        <a href="#privacy">Privacy</a>
+        <a href={`${repoUrl}#readme`}>Docs</a>
+      </nav>
+
+      <a class="button button-small" href={releaseUrl}>
+        <i class="ph ph-download-simple" aria-hidden="true"></i>
+        <span>Get Vibelimit</span>
+      </a>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-text">
+          <p class="eyebrow"><span></span> Free & open source for macOS</p>
+          <h1 id="hero-title">Your coding limits.<br />One quiet <em>panel.</em></h1>
+          <p class="hero-copy">
+            Codex, Claude Code, Cursor, and GitHub Copilot together in your menu bar.
+            See remaining usage and reset times. Only connected subscriptions appear.
+          </p>
+          <div class="hero-actions">
+            <a class="button" href={releaseUrl}>
+              <i class="ph ph-apple-logo" aria-hidden="true"></i>
+              <span>Download for macOS</span>
+            </a>
+            <a class="text-link" href={repoUrl}>
+              View source <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+            </a>
+          </div>
+          <p class="requirement">Requires macOS 13 Ventura or later · Existing provider sign-in</p>
+        </div>
+
+        <div class="product-stage" aria-label="Vibelimit floating panel preview">
+          <div class="menubar-glimpse">
+            <span>✦</span>
+            <strong>93%</strong>
+          </div>
+          <img
+            src="/images/vibelimit-panel-crop.png"
+            width="1000"
+            height="620"
+            alt="Vibelimit menu bar panel showing 93 percent of a Codex limit remaining"
+            loading="eager"
+            fetchpriority="high"
+          />
+          <p class="preview-caption">Codex view from the previous release. The new panel groups connected subscriptions.</p>
+        </div>
+      </section>
+
+      <section class="essentials" aria-labelledby="essentials-title">
+        <p class="section-kicker">Built to stay out of the way</p>
+        <h2 id="essentials-title">The essentials, right where you work.</h2>
+
+        <div class="feature-grid">
+          <article>
+            <i class="ph ph-gauge" aria-hidden="true"></i>
+            <h3>Always in sight</h3>
+            <p>Keep your preferred subscription in the menu bar. Open one panel to see all connected providers.</p>
+          </article>
+          <article>
+            <i class="ph ph-bell-simple" aria-hidden="true"></i>
+            <h3>A warning, not noise</h3>
+            <p>Optional notifications when your limit is low, exhausted, or restored.</p>
+          </article>
+          <article>
+            <i class="ph ph-arrow-clockwise" aria-hidden="true"></i>
+            <h3>Reset-aware</h3>
+            <p>See the active window and countdown to your next reset at a glance.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="privacy-section" id="privacy" aria-labelledby="privacy-title">
+        <div class="privacy-copy">
+          <p class="section-kicker">Read-only by design</p>
+          <h2 id="privacy-title">Your account stays<br /><em>your account.</em></h2>
+          <p>
+            Vibelimit reuses existing local sign-ins. Codex stays on your Mac;
+            the other connectors make read-only usage requests to their provider.
+            It never saves credentials, initiates login, or sends analytics.
+          </p>
+          <a class="text-link" href={`${repoUrl}#privacy`}>
+            Read the privacy notes <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+          </a>
+        </div>
+
+        <div class="privacy-card" aria-label="Vibelimit privacy principles">
+          <div><i class="ph ph-hard-drives" aria-hidden="true"></i><span>Runs locally</span></div>
+          <div><i class="ph ph-eye-slash" aria-hidden="true"></i><span>No tracking</span></div>
+          <div><i class="ph ph-key" aria-hidden="true"></i><span>No stored credentials</span></div>
+          <div><i class="ph ph-code" aria-hidden="true"></i><span>Open source</span></div>
+        </div>
+      </section>
+
+      <section class="final-cta" aria-labelledby="final-title">
+        <div>
+          <p class="section-kicker">One less thing to wonder about</p>
+          <h2 id="final-title">Keep your headroom visible.</h2>
+        </div>
+        <a class="button button-light" href={releaseUrl}>
+          <i class="ph ph-apple-logo" aria-hidden="true"></i>
+          <span>Get Vibelimit</span>
+        </a>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand" href="/" aria-label="Vibelimit home">
+        <img src="/icons/favicon-32.png" width="24" height="24" alt="" aria-hidden="true" />
+        <span>Vibelimit</span>
+      </a>
+      <p>Made for the menu bar. Open source under MIT.</p>
+      <div>
+        <a href={repoUrl}>GitHub</a>
+        <a href={`${repoUrl}/blob/main/LICENSE`}>License</a>
+      </div>
+    </footer>
+  </body>
+</html>

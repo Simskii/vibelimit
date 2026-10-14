@@ -75,12 +75,12 @@ final class PanelController {
         guard let button = statusButton,
               let buttonWindow = button.window else { return }
 
-        let measuredHeight = hostingView.fittingSize.height
-        let height = min(420, max(148, measuredHeight))
         let buttonRectInWindow = button.convert(button.bounds, to: nil)
         let buttonRectOnScreen = buttonWindow.convertToScreen(buttonRectInWindow)
         let screen = buttonWindow.screen ?? NSScreen.main
         let visibleFrame = screen?.visibleFrame ?? .zero
+        let height = min(620, max(148, visibleFrame.height - 16))
+        hostingView.rootView.panelHeight = height
 
         var originX = buttonRectOnScreen.midX - (Self.panelWidth / 2)
         originX = min(

@@ -9,7 +9,7 @@ final class LimitNotificationManager {
 
     private let center: UNUserNotificationCenter
     private let defaults: UserDefaults
-    private var previousState: LimitNotificationState?
+    private var previousStates: [SubscriptionProvider: LimitNotificationState] = [:]
 
     private(set) var isEnabled: Bool
 
@@ -38,44 +38,44 @@ final class LimitNotificationManager {
         }
     }
 
-    func process(snapshot: UsageSnapshot) {
+    func process(snapshot: UsageSnapshot, provider: SubscriptionProvider = .codex) {
         guard let currentState = LimitNotificationEvaluator.state(for: snapshot) else {
             return
         }
-        defer { previousState = currentState }
+        defer { previousStates[provider] = currentState }
 
         guard isEnabled,
               let event = LimitNotificationEvaluator.event(
-                previous: previousState,
+                previous: previousStates[provider],
                 current: currentState
               ) else {
             return
         }
 
-        deliver(event)
+        deliver(event, provider: provider)
     }
 
     private func requestAuthorization() {
         center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
-    private func deliver(_ event: LimitNotificationEvent) {
+    private func deliver(_ event: LimitNotificationEvent, provider: SubscriptionProvider) {
         let content = UNMutableNotificationContent()
         content.sound = .default
 
         let identifier: String
         switch event {
         case let .low(remainingPercent, resetsAt):
-            identifier = "codex-limit-low"
-            content.title = "Codex is running low"
+            identifier = "\(provider.rawValue)-limit-low"
+            content.title = "\(provider.displayName) is running low"
             content.body = "\(Int(remainingPercent.rounded()))% remaining\(resetSuffix(resetsAt))"
         case let .exhausted(resetsAt):
-            identifier = "codex-limit-exhausted"
-            content.title = "Codex limit reached"
-            content.body = "Your Codex capacity is exhausted\(resetSuffix(resetsAt))"
+            identifier = "\(provider.rawValue)-limit-exhausted"
+            content.title = "\(provider.displayName) limit reached"
+            content.body = "A \(provider.displayName) usage limit is exhausted\(resetSuffix(resetsAt))"
         case let .recovered(remainingPercent):
-            identifier = "codex-limit-recovered"
-            content.title = "Codex is available again"
+            identifier = "\(provider.rawValue)-limit-recovered"
+            content.title = "\(provider.displayName) is available again"
             content.body = "\(Int(remainingPercent.rounded()))% capacity is now available"
         }
 

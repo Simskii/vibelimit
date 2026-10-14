@@ -46,6 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
 
         usageStore.start()
+        if CommandLine.arguments.contains("--show-panel"), let button = statusItem.button {
+            panelController.show(relativeTo: button)
+        }
         if isInstalledApplication {
             launchAtLogin.enableByDefaultIfNeeded()
         }
@@ -61,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if panelController.isVisible {
             panelController.close()
         } else {
-            usageStore.refresh()
+            usageStore.refreshAll()
             panelController.show(relativeTo: button)
         }
     }
@@ -85,7 +88,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.imageScaling = .scaleNone
         button.title = ""
         button.attributedTitle = NSAttributedString()
-        button.toolTip = state.isStale ? "Vibelimit — showing cached limits" : "Vibelimit — \(value) remaining"
+        let provider = usageStore.selectedProvider.shortName
+        button.toolTip = state.isStale ? "\(provider): cached limits" : "\(provider): \(remaining == nil ? "usage unavailable or unlimited" : "\(value) remaining")"
     }
 
     private func makeStatusImage(symbolName: String, value: String) -> NSImage? {

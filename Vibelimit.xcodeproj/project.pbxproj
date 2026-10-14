@@ -18,6 +18,9 @@
 		100000000000000000000009 /* CodexAppServerClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* CodexAppServerClientTests.swift */; };
 		10000000000000000000000A /* LimitNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000D /* LimitNotifications.swift */; };
 		10000000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000E /* Assets.xcassets */; };
+		10000000000000000000000C /* SubscriptionUsageClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000F /* SubscriptionUsageClient.swift */; };
+		10000000000000000000000D /* SubscriptionConnectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000010 /* SubscriptionConnectorTests.swift */; };
+		10000000000000000000000E /* CursorConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* CursorConnector.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +48,9 @@
 		20000000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		20000000000000000000000D /* LimitNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitNotifications.swift; sourceTree = "<group>"; };
 		20000000000000000000000E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		20000000000000000000000F /* SubscriptionUsageClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionUsageClient.swift; sourceTree = "<group>"; };
+		200000000000000000000010 /* SubscriptionConnectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionConnectorTests.swift; sourceTree = "<group>"; };
+		200000000000000000000011 /* CursorConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorConnector.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +87,8 @@
 				200000000000000000000002 /* Models.swift */,
 				200000000000000000000003 /* CodexAppServerClient.swift */,
 				200000000000000000000004 /* UsageStore.swift */,
+				20000000000000000000000F /* SubscriptionUsageClient.swift */,
+				200000000000000000000011 /* CursorConnector.swift */,
 				200000000000000000000005 /* LaunchAtLoginManager.swift */,
 				200000000000000000000006 /* PanelController.swift */,
 				200000000000000000000007 /* PanelContentView.swift */,
@@ -96,6 +104,7 @@
 			children = (
 				200000000000000000000008 /* RateLimitModelsTests.swift */,
 				200000000000000000000009 /* CodexAppServerClientTests.swift */,
+				200000000000000000000010 /* SubscriptionConnectorTests.swift */,
 			);
 			path = VibelimitTests;
 			sourceTree = "<group>";
@@ -212,6 +221,8 @@
 				100000000000000000000002 /* Models.swift in Sources */,
 				100000000000000000000003 /* CodexAppServerClient.swift in Sources */,
 				100000000000000000000004 /* UsageStore.swift in Sources */,
+				10000000000000000000000C /* SubscriptionUsageClient.swift in Sources */,
+				10000000000000000000000E /* CursorConnector.swift in Sources */,
 				100000000000000000000005 /* LaunchAtLoginManager.swift in Sources */,
 				100000000000000000000006 /* PanelController.swift in Sources */,
 				100000000000000000000007 /* PanelContentView.swift in Sources */,
@@ -225,6 +236,7 @@
 			files = (
 				100000000000000000000008 /* RateLimitModelsTests.swift in Sources */,
 				100000000000000000000009 /* CodexAppServerClientTests.swift in Sources */,
+				10000000000000000000000D /* SubscriptionConnectorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

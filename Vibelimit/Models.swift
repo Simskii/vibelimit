@@ -4,7 +4,8 @@ import SwiftUI
 struct RateLimitWindow: Codable, Equatable, Sendable {
     let usedPercent: Double
     let windowDurationMins: Int
-    let resetsAt: TimeInterval
+    let resetsAt: TimeInterval?
+    var name: String? = nil
 
     var remainingPercent: Double {
         min(100, max(0, 100 - usedPercent))
@@ -15,7 +16,8 @@ struct RateLimitWindow: Codable, Equatable, Sendable {
     }
 
     func resetLabel(relativeTo now: Date = Date()) -> String {
-        DurationFormatter.countdown(to: Date(timeIntervalSince1970: resetsAt), relativeTo: now)
+        guard let resetsAt else { return "Unknown" }
+        return DurationFormatter.countdown(to: Date(timeIntervalSince1970: resetsAt), relativeTo: now)
     }
 }
 
@@ -33,6 +35,8 @@ struct RateLimitBucket: Codable, Equatable, Identifiable, Sendable {
     let credits: BucketCredits?
     let planType: String?
     let rateLimitReachedType: String?
+    var additional: RateLimitWindow? = nil
+    var usageNote: String? = nil
 
     var id: String { limitId }
 
@@ -58,6 +62,9 @@ struct RateLimitBucket: Codable, Equatable, Identifiable, Sendable {
         if let secondary {
             result.append(.init(kind: .secondary, window: secondary))
         }
+        if let additional {
+            result.append(.init(kind: .additional, window: additional))
+        }
         return result
     }
 
@@ -70,6 +77,7 @@ struct NamedRateLimitWindow: Equatable, Identifiable, Sendable {
     enum Kind: String, Sendable {
         case primary
         case secondary
+        case additional
     }
 
     let kind: Kind
