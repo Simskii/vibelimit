@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/Simskii/vibelimit/compare/v1.0.1...v1.1.0) (2026-10-14)
+
+
+### Features
+
+* monitor coding subscriptions in one connected-provider panel ([8c09972](https://github.com/Simskii/vibelimit/commit/8c0997285afe5d49bcf144f2857997e67cf27cd2))
+
 ## [1.0.1](https://github.com/Simskii/vibelimit/compare/v1.0.0...v1.0.1) (2026-07-29)
 
 
