@@ -172,15 +172,6 @@ jobs:
           hdiutil verify "build/release/Vibelimit-${VERSION}.dmg"
           shasum -a 256 -c "build/release/Vibelimit-${VERSION}.dmg.sha256"
 
-      - name: Preserve DMG if release fails
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Vibelimit-${{ env.VERSION }}-recovery
-          path: build/release/*.dmg
-          if-no-files-found: ignore
-          retention-days: 7
-
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -200,8 +191,17 @@ jobs:
             gh release create "${RELEASE_TAG}" \
               "build/release/Vibelimit-${VERSION}.dmg" \
               "build/release/Vibelimit-${VERSION}.dmg.sha256" \
-              --target "${GITHUB_SHA}" \
+              --target "$(git rev-parse HEAD)" \
               --title "Vibelimit ${VERSION}" \
               --generate-notes \
               --notes "${SECURITY_NOTE}"
           fi
+
+      - name: Preserve DMG if release fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vibelimit-${{ env.VERSION }}-recovery
+          path: build/release/*.dmg
+          if-no-files-found: ignore
+          retention-days: 7
