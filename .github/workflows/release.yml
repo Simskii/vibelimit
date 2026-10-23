@@ -18,6 +18,10 @@ on:
         required: true
         default: "1.0.0"
         type: string
+      source-ref:
+        description: Existing tag or commit to package (defaults to the selected workflow ref)
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -30,6 +34,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release-tag || inputs.source-ref || github.ref }}
 
       - name: Resolve version
         env:
@@ -146,7 +152,17 @@ jobs:
             --key-id "${ASC_KEY_ID}" \
             --issuer "${ASC_ISSUER_ID}" \
             --wait
-          xcrun stapler staple "build/release/Vibelimit-${VERSION}.dmg"
+          # Apple's ticket service can briefly fail after accepting a submission.
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "build/release/Vibelimit-${VERSION}.dmg"; then
+              break
+            fi
+            if [[ "${attempt}" -eq 5 ]]; then
+              echo "Could not staple the notarization ticket after five attempts." >&2
+              exit 1
+            fi
+            sleep "$((attempt * 15))"
+          done
           xcrun stapler validate "build/release/Vibelimit-${VERSION}.dmg"
           shasum -a 256 "build/release/Vibelimit-${VERSION}.dmg" \
             > "build/release/Vibelimit-${VERSION}.dmg.sha256"
@@ -175,8 +191,17 @@ jobs:
             gh release create "${RELEASE_TAG}" \
               "build/release/Vibelimit-${VERSION}.dmg" \
               "build/release/Vibelimit-${VERSION}.dmg.sha256" \
-              --target "${GITHUB_SHA}" \
+              --target "$(git rev-parse HEAD)" \
               --title "Vibelimit ${VERSION}" \
               --generate-notes \
               --notes "${SECURITY_NOTE}"
           fi
+
+      - name: Preserve DMG if release fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vibelimit-${{ env.VERSION }}-recovery
+          path: build/release/*.dmg
+          if-no-files-found: ignore
+          retention-days: 7
