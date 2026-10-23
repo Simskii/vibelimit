@@ -65,6 +65,8 @@ choose which subscription supplies the menu-bar percentage. That choice is remem
   A custom `CLAUDE_CONFIG_DIR` uses only that profile's credentials file.
   If Keychain access is needed, choose **Allow Claude Keychain Access** in the
   actions menu. Automatic refreshes never open a Keychain permission prompt.
+  Opening the panel or switching providers respects the five-minute check interval,
+  including after failed checks. Manual refresh and retry actions check immediately.
   Expired credentials must be renewed through Claude Code. A `setup-token`
   token without `user:profile` scope cannot read subscription usage.
 - **GitHub Copilot:** shows premium requests, chat, and completions when returned.

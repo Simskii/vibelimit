@@ -158,6 +158,38 @@ final class SubscriptionConnectorTests: XCTestCase {
 
 @MainActor
 final class SubscriptionStoreTests: XCTestCase {
+    func testAutomaticChecksWaitFiveMinutesAfterFailureAndManualRefreshBypassesWait() async {
+        let defaults = UserDefaults(suiteName: "VibelimitTests.\(UUID().uuidString)")!
+        defaults.set("claude", forKey: "selectedProvider")
+        defaults.set(false, forKey: "limitNotificationsEnabled")
+        var date = Date(timeIntervalSince1970: 1_000)
+        var promptPermissions: [Bool] = []
+        let store = UsageStore(notificationManager: LimitNotificationManager(defaults: defaults),
+            defaults: defaults, now: { date }, fetchSubscription: { _, allowPrompt in
+                promptPermissions.append(allowPrompt)
+                throw SubscriptionError.network
+            })
+        defer { store.stop() }
+
+        store.refresh(force: false)
+        await waitFor { if case .unavailable = store.state { return true }; return false }
+        XCTAssertEqual(promptPermissions, [false])
+
+        date.addTimeInterval(299)
+        store.refresh(force: false)
+        await Task.yield()
+        XCTAssertEqual(promptPermissions.count, 1)
+
+        date.addTimeInterval(1)
+        store.refresh(force: false)
+        await waitFor { if case .unavailable = store.state { return true }; return false }
+        XCTAssertEqual(promptPermissions, [false, false])
+
+        store.refresh(allowKeychainPrompt: true)
+        await waitFor { if case .unavailable = store.state { return true }; return false }
+        XCTAssertEqual(promptPermissions, [false, false, true])
+    }
+
     func testLateProviderResultDoesNotReplaceSelectedProviderAndCachesStaySeparate() async throws {
         let defaults = UserDefaults(suiteName: "VibelimitTests.\(UUID().uuidString)")!
         defaults.set("claude", forKey: "selectedProvider")

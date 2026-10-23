@@ -22,6 +22,9 @@ final class UsageStore: ObservableObject {
     private var refreshing = Set<SubscriptionProvider>()
     private var tasks: [SubscriptionProvider: Task<Void, Never>] = [:]
     private var stopped = false
+    private static let refreshInterval: TimeInterval = 300
+    private var lastRefreshAttempt: [SubscriptionProvider: Date] = [:]
+    private let now: () -> Date
 
     var visibleProviders: [SubscriptionProvider] {
         SubscriptionProvider.allCases.filter { providers[$0]?.snapshot != nil }
@@ -37,12 +40,14 @@ final class UsageStore: ObservableObject {
         client: CodexAppServerClient = CodexAppServerClient(),
         notificationManager: LimitNotificationManager? = nil,
         defaults: UserDefaults = .standard,
+        now: @escaping () -> Date = Date.init,
         fetchSubscription: @escaping (SubscriptionProvider, Bool) async throws -> UsageSnapshot = {
             try await SubscriptionUsageClient().fetch($0, allowKeychainPrompt: $1)
         }
     ) {
         self.client = client
         self.defaults = defaults
+        self.now = now
         self.fetchSubscription = fetchSubscription
         self.notificationManager = notificationManager ?? LimitNotificationManager()
         selectedProvider = SubscriptionProvider(rawValue: defaults.string(forKey: "selectedProvider") ?? "") ?? .codex
@@ -59,30 +64,35 @@ final class UsageStore: ObservableObject {
         selectedProvider = provider
         defaults.set(provider.rawValue, forKey: "selectedProvider")
         publishSelectedProvider()
-        refresh()
+        refresh(force: false)
     }
 
     func start() {
         stopped = false
         notificationManager.start()
-        refreshAll()
+        refreshAll(force: false)
         refreshTimer?.invalidate()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refreshAll() }
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: Self.refreshInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refreshAll(force: false) }
         }
     }
 
-    func refreshAll() {
-        for provider in SubscriptionProvider.allCases { refresh(provider: provider) }
+    func refreshAll(force: Bool = true) {
+        for provider in SubscriptionProvider.allCases { refresh(provider: provider, force: force) }
     }
 
     func status(for provider: SubscriptionProvider) -> ProviderState {
         providers[provider] ?? ProviderState()
     }
 
-    func refresh(provider: SubscriptionProvider? = nil, allowKeychainPrompt: Bool = false) {
+    func refresh(provider: SubscriptionProvider? = nil, allowKeychainPrompt: Bool = false, force: Bool = true) {
         let provider = provider ?? selectedProvider
-        guard !stopped, refreshing.insert(provider).inserted else { return }
+        guard !stopped else { return }
+        let attemptDate = now()
+        if !force, let lastAttempt = lastRefreshAttempt[provider],
+           attemptDate.timeIntervalSince(lastAttempt) < Self.refreshInterval { return }
+        guard refreshing.insert(provider).inserted else { return }
+        lastRefreshAttempt[provider] = attemptDate
         if providers[provider]?.snapshot == nil {
             providers[provider, default: ProviderState()].state = .loading
             publishSelectedProvider()
