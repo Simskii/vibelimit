@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.1](https://github.com/Simskii/vibelimit/compare/v1.1.0...v1.1.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* preserve packages after publication failures ([c3ec758](https://github.com/Simskii/vibelimit/commit/c3ec75818849d2f48ea35fa790465fa3848cd88b))
+* recover release packaging from Apple ticket service failures ([8985e66](https://github.com/Simskii/vibelimit/commit/8985e66022ef04afadebcfc0d364ee031dab8c48))
+* retry notarization ticket retrieval during releases ([5bdcc2a](https://github.com/Simskii/vibelimit/commit/5bdcc2aaf28b9519bee5fe001fcf0f9fe16b8aff))
+* throttle automatic usage checks to five minutes ([dea80e3](https://github.com/Simskii/vibelimit/commit/dea80e3bc3b3f7e151feaee0d4bddf2be79b9e3d))
+* throttle automatic usage checks to five minutes ([35dea36](https://github.com/Simskii/vibelimit/commit/35dea36b9402241dc779162c123317d5554b1359))
+
 ## [1.1.0](https://github.com/Simskii/vibelimit/compare/v1.0.1...v1.1.0) (2026-10-14)
 
 
