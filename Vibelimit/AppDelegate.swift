@@ -64,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if panelController.isVisible {
             panelController.close()
         } else {
-            usageStore.refreshAll()
+            usageStore.refreshAll(force: false)
             panelController.show(relativeTo: button)
         }
     }
